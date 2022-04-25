@@ -1,0 +1,26 @@
+version: "3.3"
+
+services:
+  traefik:
+    image: "traefik:v2.7"
+    container_name: "traefik"
+    command: --providers.docker
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  traefik-control:
+    build: .
+    labels:
+      - "traefik.http.middlewares.traefik-control.forwardauth.address=http://traefik-control:5500/auth"
+      - "traefik.http.middlewares.traefik-control.forwardauth.authResponseHeaders=X-Forwarded-User"
+      - "traefik.http.services.traefik-control.loadbalancer.server.port=5500"
+
+  whoami:
+    image: "traefik/whoami"
+    container_name: "simple-service"
+    labels:
+      - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)"
+      - "traefik.http.routers.whoami.middlewares=traefik-control"
